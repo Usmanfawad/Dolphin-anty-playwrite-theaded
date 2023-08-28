@@ -35,7 +35,7 @@ async function getWsEndPoint(profileId) {
 }
 
 
-async function openDolphin (profileId) {
+async function openDolphinTwo (profileId) {
     console.log(profileId);
     try {
         const wsEndPoint = await getWsEndPoint(profileId);
@@ -91,55 +91,64 @@ async function openBrowser (wsEndPoint, port) {
     
     
     // Hall's script to execute bumble related tasks
-    console.log("Please log in. Waiting for successful login detection...");
-    await page.waitForSelector('#main > div > div.page__layout > main > div.page__content-inner > div > div > span > div.encounters-user__controls > div > div:nth-child(2) > div > div:nth-child(2) > div > div.encounters-action__icon > span', { timeout: 210000 });
+    const loginSuccessSelector = '#main > div > div.page__layout > main > div.page__content-inner > div > div > span > div.encounters-user__controls > div > div:nth-child(2) > div > div:nth-child(2) > div > div.encounters-action__icon > span';
+    await page.waitForSelector(loginSuccessSelector, { timeout: 210000 });
     console.log("Login selector identified, assuming successful login.");
 
+    const chatBoxBaseSelector = '#main > div > div.page__layout > aside.page__sidebar > div > div.sidebar__content.sidebar__content--main > div > div > section.contact-tabs__section.contact-tabs__section--conversations > div > div > div.scroll__inner > div';
+    const notificationClass = 'has-notifications';
     const sendButtonSelector = '#main > div > div.page__layout > main > div.message-field > div > button';
-    const greetings = ["Hi, sorry i'm so bad at messaging here! if you wanna use snap mine's chloebbyxxx ", "Hey sorry don't have my notifications on, probs better to use snap? chloebbyxxx ", "Hiya do you have sc? i hardly use this sorry, mines chloebbyxxx", "hiiii", "heyy i'd rather use snap cause i dont check this...chloebbyyyx", "heyaa"];
-
-    let matchIndex = 2;
-    let countSinceLastRefresh = 0;
+    const messageInputSelector = '#main > div > div.page__layout > main > div.message-field.is-focused > div > div.message-field__input > div > div > textarea.textarea__input';
+    const greetings = ["Hi, sorry i'm so bad at messaging here! if you wanna use snap mine's dadayanyx ", "Hey sorry don't have my notifications on, probs better to use snap? dadayanyx ", "Hiya do you have sc? i hardly use this sorry, mines dadayanyx", "heyy i'd rather use snap cause i dont check this...dadaynayx"];
+    //const greetings = ['hmm send me yours??'];
+    let i = 1;
+    let uidToMessage = null;
     
     while (true) {
-        const buttonSelector = '//*[@id="main"]/div/div[1]/aside[1]/div/div[3]/div/div/section[1]/div/section/section/div[1]/ul/li[2]';
-        const messageInputSelector = '#main > div > div.page__layout > main > div.message-field.is-focused > div > div.message-field__input > div > div > textarea.textarea__input';
+        const chatBox = await page.$(`${chatBoxBaseSelector}:nth-child(${i})`);
         
-        try {
-            await page.click(buttonSelector);
-            console.log(`Button ${matchIndex} clicked.`);
-        
-            const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-            await human_like_typing(page, messageInputSelector, randomGreeting);
-            
-            await page.waitForTimeout(Math.random() * (1000 - 500) + 500);
-            await page.click(sendButtonSelector);
-            await page.waitForTimeout(3000);
+        // Break if no more chat boxes are found
+        if (!chatBox) {
+            break;
+        }
+
+        await page.evaluate(el => el.scrollIntoView(), chatBox);
+        console.log(`Scrolled chat box ${i} into view`);
+
+        // Check if the current chat box has a notification
+        const isNotified = await chatBox.evaluate((node, notificationClass) => node.classList.contains(notificationClass), notificationClass);
+
+
+        if (isNotified) {
+            uidToMessage = await chatBox.evaluate(node => node.getAttribute('data-qa-uid'));
+            console.log(`Chat box ${i} has a notification! UID: ${uidToMessage}`);
+        }
     
-            countSinceLastRefresh++;
-
-            if (countSinceLastRefresh == 10) {
-
-                // Adding explicit wait between 1 to 2 seconds before refreshing
-                await page.waitForTimeout(Math.random() * (2000 - 1000) + 1000);
-
-                
-                await page.keyboard.press('Command+R'); // Simulates a Cmd+R press on MacOS NOT FUCKING WORKING (let's try every 3 minuets)
-                
-                console.log("Refreshed the browser after messaging 10 matches.");
-                countSinceLastRefresh = 0;
-            }
+        // Click the chat box to move to the next one
+        await chatBox.click();
+        console.log(`Clicked on chat box ${i}`);
     
-        } catch (e) {
-            if (e.message.includes("No node found for selector")) {
-                console.log(`Button ${matchIndex} not found. Assuming end of matches.`);
-                console.log(`Total messages sent = ${matchIndex - 1}`);
-                break;
-            } else {
-                console.log(`Error while trying to click Button ${matchIndex}:`, e.message);
+        // If we identified a chat box with a notification, find it using its UID and send a message
+        if (uidToMessage) {
+            const chatToMessage = await page.$(`[data-qa-uid="${uidToMessage}"]`);
+            if (chatToMessage) {
+                const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+                await human_like_typing(page, messageInputSelector, randomGreeting);
+                
+                await page.waitForTimeout(Math.random() * (1000 - 500) + 500);
+                await page.click(sendButtonSelector);
+                console.log(`Sent a message to chat box with UID: ${uidToMessage}`);
+                
+                // Reset the UID to ensure we don't message the same chat box again
+                uidToMessage = null;
             }
         }
-    }
+    
+        const randomWait = 1000 + Math.floor(Math.random() * 1000);
+        await page.waitForTimeout(randomWait);
+    
+        i++;
+    }    
     // Hall's script to execute bumble related tasks END
     console.log("Waiting for 10 seconds before closing the browser...");
     await page.waitForTimeout(10000);
@@ -155,4 +164,4 @@ async function openBrowser (wsEndPoint, port) {
 
 
 
-module.exports = openDolphin;
+module.exports = openDolphinTwo;

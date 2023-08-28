@@ -16,7 +16,7 @@ const config = {
 axios.get(url, config)
   .then(response => {
     const responseData = response.data.data;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 17; i < 19; i++) {
         // console.log(responseData[i].id);
         openDolphin(responseData[i].id);
     }
