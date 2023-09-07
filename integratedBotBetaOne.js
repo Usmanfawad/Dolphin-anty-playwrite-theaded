@@ -53,6 +53,9 @@ function neighboringKey(char) {
     const sendButtonSelector = '#main > div > div.page__layout > main > div.message-field > div > button';
     const messageInputSelector = '#main > div > div.page__layout > main > div.message-field.is-focused > div > div.message-field__input > div > div > textarea.textarea__input';
     const openingMessages = ["hi", "hii", 'hiii', "hey", "heyy", "heyy", "hi hi", "hi hi hi"];
+
+    // Insert names from the notes to the [xxx] values. 
+    
     const followUpMessages = [
         "Hi, sorry i'm so bad at messaging here! if you wanna use snap mine's [xxx] ", //ADAPT SNAPCHAT NAMES HERE 
         "Hey sorry don't have my notifications on, probs better to use snap? [xxx] ",

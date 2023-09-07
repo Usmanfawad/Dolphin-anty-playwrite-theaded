@@ -91,64 +91,118 @@ async function openBrowser (wsEndPoint, port) {
     
     
     // Hall's script to execute bumble related tasks
-    const loginSuccessSelector = '#main > div > div.page__layout > main > div.page__content-inner > div > div > span > div.encounters-user__controls > div > div:nth-child(2) > div > div:nth-child(2) > div > div.encounters-action__icon > span';
-    await page.waitForSelector(loginSuccessSelector, { timeout: 210000 });
-    console.log("Login selector identified, assuming successful login.");
+
+    // Try to login if not already logged in
+    try {
+        const loginSuccessSelector = '#main > div > div.page__layout > main > div.page__content-inner > div > div > span > div.encounters-user__controls > div > div:nth-child(2) > div > div:nth-child(2) > div > div.encounters-action__icon > span';
+        await page.waitForSelector(loginSuccessSelector, { timeout: 210000 });
+        console.log("Login selector identified, assuming successful login.");
+    }
+    catch(err) {
+        console.log(err);
+    }
+    
 
     const chatBoxBaseSelector = '#main > div > div.page__layout > aside.page__sidebar > div > div.sidebar__content.sidebar__content--main > div > div > section.contact-tabs__section.contact-tabs__section--conversations > div > div > div.scroll__inner > div';
     const notificationClass = 'has-notifications';
     const sendButtonSelector = '#main > div > div.page__layout > main > div.message-field > div > button';
     const messageInputSelector = '#main > div > div.page__layout > main > div.message-field.is-focused > div > div.message-field__input > div > div > textarea.textarea__input';
-    const greetings = ["Hi, sorry i'm so bad at messaging here! if you wanna use snap mine's dadayanyx ", "Hey sorry don't have my notifications on, probs better to use snap? dadayanyx ", "Hiya do you have sc? i hardly use this sorry, mines dadayanyx", "heyy i'd rather use snap cause i dont check this...dadaynayx"];
-    //const greetings = ['hmm send me yours??'];
-    let i = 1;
-    let uidToMessage = null;
+    const openingMessages = ["hi", "hii", 'hiii', "hey", "heyy", "heyy", "hi hi", "hi hi hi"];
+
+    // Insert names from the notes to the [xxx] values. 
     
-    while (true) {
-        const chatBox = await page.$(`${chatBoxBaseSelector}:nth-child(${i})`);
-        
-        // Break if no more chat boxes are found
-        if (!chatBox) {
-            break;
-        }
-
-        await page.evaluate(el => el.scrollIntoView(), chatBox);
-        console.log(`Scrolled chat box ${i} into view`);
-
-        // Check if the current chat box has a notification
-        const isNotified = await chatBox.evaluate((node, notificationClass) => node.classList.contains(notificationClass), notificationClass);
-
-
-        if (isNotified) {
-            uidToMessage = await chatBox.evaluate(node => node.getAttribute('data-qa-uid'));
-            console.log(`Chat box ${i} has a notification! UID: ${uidToMessage}`);
-        }
+    const followUpMessages = [
+        "Hi, sorry i'm so bad at messaging here! if you wanna use snap mine's [xxx] ", //ADAPT SNAPCHAT NAMES HERE 
+        "Hey sorry don't have my notifications on, probs better to use snap? [xxx] ",
+        "Hiya do you have sc? i hardly use this sorry, mines [xxx]",
+        "heyy i'd rather use snap cause i dont check this...[xxxx]" 
+    ];
     
-        // Click the chat box to move to the next one
-        await chatBox.click();
-        console.log(`Clicked on chat box ${i}`);
+//-------------------------------------------------------------------- OPENING MESSAGE----------------------------------------------------------------
+
+    let totalMatchesMessaged = 0;
+    const followedUpUIDs = new Set();
     
-        // If we identified a chat box with a notification, find it using its UID and send a message
-        if (uidToMessage) {
-            const chatToMessage = await page.$(`[data-qa-uid="${uidToMessage}"]`);
-            if (chatToMessage) {
-                const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-                await human_like_typing(page, messageInputSelector, randomGreeting);
-                
+    while (totalMatchesMessaged < 100) { //TOTAL NUMBER OF MESSAGES YOU WANT TO SEND
+        for (let batch = 0; batch < 20; batch++) { //SIZE OF THE BATCH YOU WANT TO SEND THEM IN
+            const buttonSelector = '//*[@id="main"]/div/div[1]/aside[1]/div/div[3]/div/div/section[1]/div/section/section/div[1]/ul/li[2]';
+            try {
+                await page.click(buttonSelector);
+
+                // checking the number of items in a carousel!
+                const elements = await page.$$(".scrollable-carousel__item");
+                // console.log(elements.length);
+            
+                // if the length if 2, which means only 1 item is left, refresh the page.
+                if (elements.length <= 2) {
+                    console.log("Reloading page");
+                    page.reload();
+                }
+
+
+                const randomOpening = openingMessages[Math.floor(Math.random() * openingMessages.length)];
+                await human_like_typing(page, messageInputSelector, randomOpening);
                 await page.waitForTimeout(Math.random() * (1000 - 500) + 500);
                 await page.click(sendButtonSelector);
-                console.log(`Sent a message to chat box with UID: ${uidToMessage}`);
-                
-                // Reset the UID to ensure we don't message the same chat box again
-                uidToMessage = null;
+                await page.waitForTimeout(3000);
+            } catch (e) {
+                console.error("Error sending message to match:", e);
             }
         }
+
+        totalMatchesMessaged += 20; //MAKE SURE YOU 
+
+        //-----------------------------------------------------------FOLLOW UP MESSAGE LOGIC----------------------------------------------------------
+
+        console.log("Waiting between one and one and a half hours");
+        await page.waitForTimeout(30 * 1000); // THE TIME YOU WANT TO WAIT BETWEEN OPENING AND FOLLOWUP MESSAGES
+
+        const chatBoxBaseSelector = '#main > div > div.page__layout > aside.page__sidebar > div > div.sidebar__content.sidebar__content--main > div > div > section.contact-tabs__section.contact-tabs__section--conversations > div > div > div.scroll__inner > div';
+        const notificationClass = 'has-notifications';
+        let uidToMessage = null;
+        let i = 1;
+
+        while (true) {
+            const chatBox = await page.$(`${chatBoxBaseSelector}:nth-child(${i})`);
+            if (!chatBox) {
+                break;
+            }
+
+            await page.evaluate(el => el.scrollIntoView(), chatBox);
+            console.log(`Scrolled chat box ${i} into view`); 
+
+            const isNotified = await chatBox.evaluate((node, notificationClass) => node.classList.contains(notificationClass), notificationClass);
+            if (isNotified) {
+                uidToMessage = await chatBox.evaluate(node => node.getAttribute('data-qa-uid'));
+                console.log(`Chat box ${i} has a notification! UID: ${uidToMessage}`);
+            }
+
+            await chatBox.evaluate(el => el.click());
+            console.log(`Clicked on chat box ${i}`);
     
-        const randomWait = 1000 + Math.floor(Math.random() * 1000);
-        await page.waitForTimeout(randomWait);
-    
-        i++;
-    }    
+            if (uidToMessage && !followedUpUIDs.has(uidToMessage)) {    //has notifications and has not been followed up.
+                const chatToMessage = await page.$(`[data-qa-uid="${uidToMessage}"]`);
+                if (chatToMessage) {
+                    const randomFollowUp = followUpMessages[Math.floor(Math.random() * followUpMessages.length)];
+                    //should we input an await.messageInputSelector?? (is that why some messages are cut off)
+                    await human_like_typing(page, messageInputSelector, randomFollowUp); 
+                    await page.waitForTimeout(Math.random() * (1000 - 500) + 500);
+                    await page.click(sendButtonSelector);
+                    console.log(`Sent a message to chat box with UID: ${uidToMessage}`);
+                    followedUpUIDs.add(uidToMessage);
+                    uidToMessage = null;
+                }
+            } else if (uidToMessage) {
+                console.log(`Already sent a follow-up to UID: ${uidToMessage}`);
+            }
+
+            await page.waitForTimeout(1000 + Math.floor(Math.random() * 1000));
+            i++;
+        }
+        
+        console.log("Waiting for 30 seconds before resuming opening messages...");
+        await page.waitForTimeout(30000); // THE TIME YOU WANT TO WAIT BETWEEN SENDING YOU FOLLOWUPS AND STARTING A NEW BATCH OF OPENINGS 
+    }
     // Hall's script to execute bumble related tasks END
     console.log("Waiting for 10 seconds before closing the browser...");
     await page.waitForTimeout(10000);

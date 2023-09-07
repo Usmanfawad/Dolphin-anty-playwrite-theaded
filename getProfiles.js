@@ -1,5 +1,5 @@
 // import { openDolphin } from "./main";
-const openDolphin = require('./main');
+const openDolphin = require('./mainTwo');
 const axios = require('axios');
 
 const url = 'https://dolphin-anty-api.com/browser_profiles'; // URL to get all the IDs
@@ -16,7 +16,7 @@ const config = {
 axios.get(url, config)
   .then(response => {
     const responseData = response.data.data;
-    for (let i = 17; i < 19; i++) {
+    for (let i = 0; i < 1; i++) {
         // console.log(responseData[i].id);
         openDolphin(responseData[i].id);
     }

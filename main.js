@@ -71,7 +71,11 @@ function neighboringKey(char) {
     const neighbors = {
         'a': ['s', 'q', 'z'],
         's': ['a', 'd', 'w', 'z', 'x'],
-        // ... add more keys and their neighbors
+        'h': ['g', 'j', 'y'],
+        'y': ['u', 't'],
+        'i': ['o', 'l', 'u'],
+        'o': ['p', 'l', 'i', 'k'],
+        'e': ['w', 'r', 's', 'd'],
     };
     if (neighbors[char]) {
         return neighbors[char][Math.floor(Math.random() * neighbors[char].length)];
